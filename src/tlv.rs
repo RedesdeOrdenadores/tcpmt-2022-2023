@@ -62,7 +62,7 @@ impl TryFrom<u8> for TlvType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Tlv<'a> {
     pub tag: TlvType,
     pub length: u8,
@@ -124,5 +124,71 @@ impl<'a> Iterator for TlvIterator<'a> {
             }
             Err(_) => None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Tlv, TlvIterator};
+
+    #[test]
+    fn parse_tlv_err_long() {
+        let tlv: Result<Tlv, _> = (&[16u8, 9, 0, 0, 0, 0, 0, 0, 0, 1][..]).try_into();
+        assert!(tlv.is_err());
+    }
+
+    #[test]
+    fn parse_tlv_err_type() {
+        let tlv: Result<Tlv, _> = (&[20u8, 8, 0, 0, 0, 0, 0, 0, 0, 1][..]).try_into();
+        assert!(tlv.is_err());
+    }
+
+    #[test]
+    fn parse_tlv_iter() {
+        let mut iterator = TlvIterator::process(&[
+            1u8, 2, 0, 0, 1u8, 4, 0, 0, 0, 0, 1u8, 1, 1, 1u8, 0, 1u8, 1, 2,
+        ]);
+
+        assert_eq!(
+            iterator.next(),
+            Some(Tlv {
+                tag: 1u8.try_into().unwrap(),
+                length: 2,
+                data: &[0, 0]
+            })
+        );
+        assert_eq!(
+            iterator.next(),
+            Some(Tlv {
+                tag: 1u8.try_into().unwrap(),
+                length: 4,
+                data: &[0, 0, 0, 0]
+            })
+        );
+        assert_eq!(
+            iterator.next(),
+            Some(Tlv {
+                tag: 1u8.try_into().unwrap(),
+                length: 1,
+                data: &[1]
+            })
+        );
+        assert_eq!(
+            iterator.next(),
+            Some(Tlv {
+                tag: 1u8.try_into().unwrap(),
+                length: 0,
+                data: &[]
+            })
+        );
+        assert_eq!(
+            iterator.next(),
+            Some(Tlv {
+                tag: 1u8.try_into().unwrap(),
+                length: 1,
+                data: &[2]
+            })
+        );
+        assert_eq!(iterator.next(), None);
     }
 }

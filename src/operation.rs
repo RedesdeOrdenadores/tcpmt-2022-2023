@@ -114,7 +114,7 @@ impl From<i8> for MonomialOperationData<i8> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Operation {
     Sum(BinomialOperationData<i8, i8>),
     Sub(BinomialOperationData<i8, i8>),
@@ -224,5 +224,60 @@ impl FromStr for Operation {
         };
 
         Ok(operation)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Operation, Tlv};
+
+    #[test]
+    fn parse_operation_sum() {
+        let tlv: Result<Tlv, _> = (&[1u8, 2, 127, 255][..]).try_into();
+        assert!(tlv.is_ok());
+        let operation: Result<Operation, _> = tlv.unwrap().try_into();
+        assert!(operation.is_ok());
+        assert_eq!(operation.unwrap(), Operation::Sum((127, -1).into()));
+    }
+
+    #[test]
+    fn parse_operation_div_zero() {
+        let tlv: Result<Tlv, _> = (&[4u8, 2, 100, 0][..]).try_into();
+        assert!(tlv.is_ok());
+        let operation: Result<Operation, _> = tlv.unwrap().try_into();
+        assert!(operation.is_err());
+    }
+
+    #[test]
+    fn parse_operation_rem_zero() {
+        let tlv: Result<Tlv, _> = (&[5u8, 2, 100, 0][..]).try_into();
+        assert!(tlv.is_ok());
+        let operation: Result<Operation, _> = tlv.unwrap().try_into();
+        assert!(operation.is_err());
+    }
+
+    #[test]
+    fn operation_fact_negative() {
+        assert!(Operation::Fact((-1).into()).reduce().is_err());
+    }
+
+    #[test]
+    fn operation_fact_zero() {
+        let res = Operation::Fact((0).into()).reduce();
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), 1);
+    }
+
+    #[test]
+    fn encode_sub() {
+        assert_eq!(
+            Operation::Sub((10, -10).into()).encode()[..],
+            [2u8, 2, 10, 246]
+        );
+    }
+
+    #[test]
+    fn encode_fact() {
+        assert_eq!(Operation::Fact((100).into()).encode()[..], [6u8, 1, 100]);
     }
 }

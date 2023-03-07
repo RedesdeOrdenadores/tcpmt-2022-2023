@@ -81,3 +81,44 @@ impl From<i64> for Answer {
         Self(num)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{Answer, Tlv};
+
+    #[test]
+    fn parse_answer_1() {
+        let tlv: Result<Tlv, _> = (&[16u8, 8, 0, 0, 0, 0, 0, 0, 0, 1][..]).try_into();
+        assert!(tlv.is_ok());
+        let answer: Result<Answer, _> = tlv.unwrap().try_into();
+        assert!(answer.is_ok());
+        assert_eq!(answer.unwrap(), 1.into());
+    }
+
+    #[test]
+    fn parse_answer_minus1() {
+        let tlv: Result<Tlv, _> =
+            (&[16u8, 8, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff][..]).try_into();
+        assert!(tlv.is_ok());
+        let answer: Result<Answer, _> = tlv.unwrap().try_into();
+        assert!(answer.is_ok());
+        assert_eq!(answer.unwrap(), (-1).into());
+    }
+
+    #[test]
+    fn parse_answer_err_short() {
+        let tlv: Result<Tlv, _> = (&[16u8, 7, 0, 0, 0, 0, 0, 0, 0, 1][..]).try_into();
+        assert!(tlv.is_ok());
+        let answer: Result<Answer, _> = tlv.unwrap().try_into();
+        assert!(answer.is_err());
+    }
+
+    #[test]
+    fn encode_answer() {
+        assert_eq!(Answer(1).encode()[..], [16u8, 8, 0, 0, 0, 0, 0, 0, 0, 1]);
+        assert_eq!(
+            Answer(-1).encode()[..],
+            [16u8, 8, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]
+        );
+    }
+}
