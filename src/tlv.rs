@@ -42,6 +42,8 @@ pub enum TlvType {
     Div = 4,
     Rem = 5,
     Fact = 6,
+    Answer = 10,
+    Invalid = 11,
     Numi64 = 16,
 }
 
@@ -56,6 +58,8 @@ impl TryFrom<u8> for TlvType {
             x if x == TlvType::Div as u8 => Ok(TlvType::Div),
             x if x == TlvType::Rem as u8 => Ok(TlvType::Rem),
             x if x == TlvType::Fact as u8 => Ok(TlvType::Fact),
+            x if x == TlvType::Answer as u8 => Ok(TlvType::Answer),
+            x if x == TlvType::Invalid as u8 => Ok(TlvType::Invalid),
             x if x == TlvType::Numi64 as u8 => Ok(TlvType::Numi64),
             x => Err(TlvError::TagUnknown(x)),
         }

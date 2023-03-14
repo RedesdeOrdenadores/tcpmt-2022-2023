@@ -26,7 +26,7 @@ use std::{
 };
 
 use clap::Parser;
-use tcp1::{Answer, Operation, Tlv};
+use tcp1::{Numberi64, Operation, Tlv};
 
 #[derive(Debug, Parser)]
 struct Args {
@@ -54,7 +54,7 @@ fn main() -> anyhow::Result<()> {
             Ok(operation) => {
                 stream.write_all(&operation.encode())?;
                 let len = stream.read(&mut buffer)?;
-                let Answer(answer) = Tlv::try_from(&buffer[..len])?.try_into()?;
+                let Numberi64(answer) = Tlv::try_from(&buffer[..len])?.try_into()?;
                 println!("Accumulated value = {}", answer);
             }
             Err(_) => println!("Could not parse operation. Please, try again."),

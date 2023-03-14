@@ -28,7 +28,7 @@ use std::{
 
 use clap::Parser;
 use socket2::{Domain, Socket, Type};
-use tcp1::{Answer, Operation, TlvIterator};
+use tcp1::{Numberi64, Operation, TlvIterator};
 
 #[derive(Debug, Parser)]
 struct Args {
@@ -63,7 +63,7 @@ fn main() -> anyhow::Result<()> {
                             {
                                 Ok((operation, result)) => {
                                     acc = acc.saturating_add(result);
-                                    if stream.write_all(&Answer::from(acc).encode()).is_err() {
+                                    if stream.write_all(&Numberi64::from(acc).encode()).is_err() {
                                         // Problably the connection to the client has been lost
                                         return;
                                     }
