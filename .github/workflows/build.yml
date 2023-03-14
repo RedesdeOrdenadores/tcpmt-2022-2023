@@ -22,15 +22,15 @@ jobs:
           override: true
 
       - name: Build
-        run: cargo build --all --release --target x86_64-unknown-linux-musl && mv target/x86_64-unknown-linux-musl/release/tcp1cli target/x86_64-unknown-linux-musl/release/tcp1cli_amd64 && mv target/x86_64-unknown-linux-musl/release/tcp1ser target/x86_64-unknown-linux-musl/release/tcp1ser_amd64
+        run: cargo build --all --release --target x86_64-unknown-linux-musl && mv target/x86_64-unknown-linux-musl/release/tcpmtcli target/x86_64-unknown-linux-musl/release/tcpmtcli_amd64 && mv target/x86_64-unknown-linux-musl/release/tcpmtser target/x86_64-unknown-linux-musl/release/tcpmtser_amd64
 
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            target/x86_64-unknown-linux-musl/release/tcp1cli_amd64
-            target/x86_64-unknown-linux-musl/release/tcp1ser_amd64
+            target/x86_64-unknown-linux-musl/release/tcpmtcli_amd64
+            target/x86_64-unknown-linux-musl/release/tcpmtser_amd64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -56,8 +56,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: | 
-            target/release/tcp1cli.exe
-            target/release/tcp1ser.exe
+            target/release/tcpmtcli.exe
+            target/release/tcpmtser.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -77,14 +77,14 @@ jobs:
           override: true
 
       - name: Build for mac
-        run: cargo build --all --release && mv target/release/tcp1cli target/release/tcp1cli_darwin && mv target/release/tcp1ser target/release/tcp1ser_darwin
+        run: cargo build --all --release && mv target/release/tcpmtcli target/release/tcpmtcli_darwin && mv target/release/tcpmtser target/release/tcpmtser_darwin
 
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            target/release/tcp1cli_darwin
-            target/release/tcp1ser_darwin
+            target/release/tcpmtcli_darwin
+            target/release/tcpmtser_darwin
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

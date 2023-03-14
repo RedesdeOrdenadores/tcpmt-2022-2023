@@ -28,7 +28,7 @@ use std::{
 
 use clap::Parser;
 use socket2::{Domain, Socket, Type};
-use tcp1::{Numberi64, Operation, TlvIterator};
+use tcpmt::{Answer, Operation, TlvIterator};
 
 #[derive(Debug, Parser)]
 struct Args {
@@ -51,27 +51,31 @@ fn main() -> anyhow::Result<()> {
     loop {
         let (mut stream, addr) = listener.accept()?;
         thread::spawn(move || {
+            let mut acc = 0i64;
+            let mut buffer = [0u8; 2048];
             loop {
-                let mut acc = 0i64;
-                let mut buffer = [0u8; 2048];
                 match stream.read(&mut buffer) {
                     Ok(len) if len > 0 => {
                         for tlv in TlvIterator::process(&buffer[..len]) {
-                            match tlv
+                            let res = tlv
                                 .try_into()
-                                .and_then(|op: Operation| (op.reduce().map(|res| (op, res))))
-                            {
+                                .and_then(|op: Operation| (op.reduce().map(|res| (op, res))));
+                            let answer = match res {
                                 Ok((operation, result)) => {
                                     acc = acc.saturating_add(result);
-                                    if stream.write_all(&Numberi64::from(acc).encode()).is_err() {
-                                        // Problably the connection to the client has been lost
-                                        return;
-                                    }
+
                                     println!("{addr}: {operation} = {result}");
+                                    (acc, None)
                                 }
-                                Err(e) => {
-                                    eprintln!("Could not calculate answer. {e}");
+                                Err(ref e) => {
+                                    eprintln!("{addr}: Could not calculate answer. {}", e.clone());
+                                    (acc, Some(e.to_string()))
                                 }
+                            };
+
+                            if stream.write_all(&Answer::from(answer).encode()).is_err() {
+                                // Problably the connection to the client has been lost
+                                return;
                             }
                         }
                     }

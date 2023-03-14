@@ -23,6 +23,8 @@
 use operation::OperationError;
 use std::array::TryFromSliceError;
 use std::num::{ParseIntError, TryFromIntError};
+use std::str::Utf8Error;
+use tlv::TlvError;
 
 use thiserror::Error;
 
@@ -30,7 +32,7 @@ mod answer;
 mod operation;
 mod tlv;
 
-pub use answer::Numberi64;
+pub use answer::Answer;
 pub use operation::Operation;
 pub use tlv::Tlv;
 pub use tlv::TlvIterator;
@@ -49,6 +51,10 @@ pub enum TCPLibError {
     InvalidParameter(#[from] TryFromIntError),
     #[error("Could not parse integer")]
     ParseIntError(#[from] ParseIntError),
+    #[error("Wrong encoding for error message")]
+    ParseStringError(#[from] Utf8Error),
+    #[error("Could not parse TLV")]
+    ParseTlvError(#[from] TlvError),
     #[error("Something wrong")]
     Generic,
 }

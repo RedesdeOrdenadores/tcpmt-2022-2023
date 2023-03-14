@@ -23,7 +23,7 @@
 use std::{
     array::TryFromSliceError,
     fmt::Display,
-    num::{NonZeroI8, ParseIntError, TryFromIntError},
+    num::{ParseIntError, TryFromIntError},
     str::FromStr,
 };
 
@@ -35,7 +35,7 @@ use crate::{tlv::TlvType, Tlv};
 #[derive(Clone, Error, Debug)]
 pub enum OperationError {
     #[error("Unsupported operation {0}")]
-    UnsupportedOperation(String),
+    UnsupportedOperation(Box<str>),
     #[error("Could not parse operation")]
     Parse,
     #[error("Not enough data in TLV")]
@@ -44,6 +44,8 @@ pub enum OperationError {
     InvalidParameter(#[from] TryFromIntError),
     #[error("Could not parse integer")]
     ParseIntError(#[from] ParseIntError),
+    #[error("Result is out of range")]
+    OverFlow,
     #[error("Wrong domain")]
     WrongDomain,
     #[error("Something wrong")]
@@ -81,18 +83,6 @@ impl From<[u8; 2]> for BinomialOperationData<i8, i8> {
     }
 }
 
-impl TryFrom<[u8; 2]> for BinomialOperationData<i8, NonZeroI8> {
-    type Error = OperationError;
-
-    fn try_from(value: [u8; 2]) -> Result<Self, Self::Error> {
-        Ok((
-            i8::from_be_bytes([value[0]]),
-            i8::from_be_bytes([value[1]]).try_into()?,
-        )
-            .into())
-    }
-}
-
 impl From<[u8; 1]> for MonomialOperationData<i8> {
     fn from(value: [u8; 1]) -> Self {
         Self(i8::from_be_bytes(value))
@@ -119,23 +109,39 @@ pub enum Operation {
     Sum(BinomialOperationData<i8, i8>),
     Sub(BinomialOperationData<i8, i8>),
     Mul(BinomialOperationData<i8, i8>),
-    Div(BinomialOperationData<i8, NonZeroI8>),
-    Rem(BinomialOperationData<i8, NonZeroI8>),
+    Div(BinomialOperationData<i8, i8>),
+    Rem(BinomialOperationData<i8, i8>),
     Fact(MonomialOperationData<i8>),
 }
 
 impl Operation {
     pub fn reduce(&self) -> Result<i64, OperationError> {
         Ok(match *self {
-            Operation::Sum(BinomialOperationData(a, b)) => (a as i16 + b as i16).into(),
-            Operation::Sub(BinomialOperationData(a, b)) => (a as i16 - b as i16).into(),
-            Operation::Mul(BinomialOperationData(a, b)) => (a as i16 * b as i16).into(),
-            Operation::Div(BinomialOperationData(a, b)) => (a / b.get()).into(),
-            Operation::Rem(BinomialOperationData(a, b)) => (a % b.get()).into(),
+            Operation::Sum(BinomialOperationData(a, b)) => (a as i16)
+                .checked_add(b as i16)
+                .ok_or(OperationError::OverFlow)?
+                .into(),
+            Operation::Sub(BinomialOperationData(a, b)) => (a as i16)
+                .checked_sub(b as i16)
+                .ok_or(OperationError::OverFlow)?
+                .into(),
+            Operation::Mul(BinomialOperationData(a, b)) => (a as i16)
+                .checked_mul(b as i16)
+                .ok_or(OperationError::OverFlow)?
+                .into(),
+            Operation::Div(BinomialOperationData(a, b)) => {
+                a.checked_div(b).ok_or(OperationError::WrongDomain)?.into()
+            }
+            Operation::Rem(BinomialOperationData(a, b)) => {
+                a.checked_rem(b).ok_or(OperationError::WrongDomain)?.into()
+            }
             Operation::Fact(MonomialOperationData(a)) if a == 0 => 1,
-            Operation::Fact(MonomialOperationData(a)) if a > 0 => (1..=a as i64)
-                .reduce(|acc, e| acc.saturating_mul(e))
-                .unwrap(),
+            Operation::Fact(MonomialOperationData(a)) if a > 0 => {
+                (1..=a as i64).fold(Ok(1i64), |acc, e| match acc {
+                    Ok(n) => n.checked_mul(e).ok_or(OperationError::OverFlow),
+                    e => e,
+                })?
+            }
             _ => return Err(OperationError::WrongDomain),
         })
     }
@@ -166,10 +172,10 @@ impl<'a> TryFrom<Tlv<'a>> for Operation {
                 Operation::Mul(<[u8; 2]>::try_from(tlv.data)?.into())
             }
             TlvType::Div if tlv.length == 2 => {
-                Operation::Div(<[u8; 2]>::try_from(tlv.data)?.try_into()?)
+                Operation::Div(<[u8; 2]>::try_from(tlv.data)?.into())
             }
             TlvType::Rem if tlv.length == 2 => {
-                Operation::Rem(<[u8; 2]>::try_from(tlv.data)?.try_into()?)
+                Operation::Rem(<[u8; 2]>::try_from(tlv.data)?.into())
             }
             TlvType::Fact if tlv.length == 1 => {
                 Operation::Fact(<[u8; 1]>::try_from(tlv.data)?.into())
@@ -216,10 +222,10 @@ impl FromStr for Operation {
             Some("+") if elements[2].is_some() => Operation::Sum((a, b).into()),
             Some("-") if elements[2].is_some() => Operation::Sub((a, b).into()),
             Some("*" | "×" | "x") if elements[2].is_some() => Operation::Mul((a, b).into()),
-            Some("/" | "÷") if elements[2].is_some() => Operation::Div((a, b.try_into()?).into()),
-            Some("%") if elements[2].is_some() => Operation::Rem((a, b.try_into()?).into()),
-            Some("!") if elements[2].is_none() && a >= 0 => Operation::Fact(a.into()),
-            Some(op) => return Err(OperationError::UnsupportedOperation(op.to_string())),
+            Some("/" | "÷") if elements[2].is_some() => Operation::Div((a, b).into()),
+            Some("%") if elements[2].is_some() => Operation::Rem((a, b).into()),
+            Some("!") if elements[2].is_none() => Operation::Fact(a.into()),
+            Some(op) => return Err(OperationError::UnsupportedOperation(op.into())),
             None => return Err(OperationError::Parse),
         };
 
@@ -245,7 +251,7 @@ mod tests {
         let tlv: Result<Tlv, _> = (&[4u8, 2, 100, 0][..]).try_into();
         assert!(tlv.is_ok());
         let operation: Result<Operation, _> = tlv.unwrap().try_into();
-        assert!(operation.is_err());
+        assert!(operation.unwrap().reduce().is_err());
     }
 
     #[test]
@@ -253,7 +259,7 @@ mod tests {
         let tlv: Result<Tlv, _> = (&[5u8, 2, 100, 0][..]).try_into();
         assert!(tlv.is_ok());
         let operation: Result<Operation, _> = tlv.unwrap().try_into();
-        assert!(operation.is_err());
+        assert!(operation.unwrap().reduce().is_err());
     }
 
     #[test]
