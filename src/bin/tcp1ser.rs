@@ -23,6 +23,7 @@
 use std::{
     io::{Read, Write},
     net::{Ipv6Addr, SocketAddr, TcpListener},
+    thread,
 };
 
 use clap::Parser;
@@ -47,31 +48,36 @@ fn main() -> anyhow::Result<()> {
     socket.listen(128)?;
     let listener: TcpListener = socket.into();
 
-    let mut acc = 0i64;
     loop {
-        let (mut stream, _addr) = listener.accept()?;
-        let mut buffer = [0u8; 2048];
-        loop {
-            match stream.read(&mut buffer) {
-                Ok(len) if len > 0 => {
-                    for tlv in TlvIterator::process(&buffer[..len]) {
-                        match tlv
-                            .try_into()
-                            .and_then(|op: Operation| (op.reduce().map(|res| (op, res))))
-                        {
-                            Ok((operation, result)) => {
-                                acc = acc.saturating_add(result);
-                                stream.write_all(&Answer::from(acc).encode())?;
-                                println!("{operation} = {result}");
-                            }
-                            Err(e) => {
-                                eprintln!("Could not calculate answer. {e}");
+        let (mut stream, addr) = listener.accept()?;
+        thread::spawn(move || {
+            loop {
+                let mut acc = 0i64;
+                let mut buffer = [0u8; 2048];
+                match stream.read(&mut buffer) {
+                    Ok(len) if len > 0 => {
+                        for tlv in TlvIterator::process(&buffer[..len]) {
+                            match tlv
+                                .try_into()
+                                .and_then(|op: Operation| (op.reduce().map(|res| (op, res))))
+                            {
+                                Ok((operation, result)) => {
+                                    acc = acc.saturating_add(result);
+                                    if stream.write_all(&Answer::from(acc).encode()).is_err() {
+                                        // Problably the connection to the client has been lost
+                                        return;
+                                    }
+                                    println!("{addr}: {operation} = {result}");
+                                }
+                                Err(e) => {
+                                    eprintln!("Could not calculate answer. {e}");
+                                }
                             }
                         }
                     }
+                    _ => return, // Probably the client has closed the connection
                 }
-                _ => break, // Probably the client has closed the connection
             }
-        }
+        });
     }
 }
