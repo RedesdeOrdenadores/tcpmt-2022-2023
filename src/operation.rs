@@ -137,7 +137,7 @@ impl Operation {
             }
             Operation::Fact(MonomialOperationData(a)) if a == 0 => 1,
             Operation::Fact(MonomialOperationData(a)) if a > 0 => {
-                (1..=a as i64).fold(Ok(1i64), |acc, e| match acc {
+                (1..=a.into()).fold(Ok(1i64), |acc, e| match acc {
                     Ok(n) => n.checked_mul(e).ok_or(OperationError::OverFlow),
                     e => e,
                 })?
