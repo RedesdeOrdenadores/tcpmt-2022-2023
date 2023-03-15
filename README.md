@@ -51,6 +51,7 @@ The list is as follows:
       be enabled manually. Two alternative solutions would have been:
   * Ignoring the issue and accepting only IPv6 connections under Windows,
   * use simultaneous sockets in the server, but this complicates the code so much.
+* [num_enum][num_enum]: Avoid manual conversions between u8 and TvlType.
 
 ---
 #### Legal:
@@ -67,3 +68,4 @@ This software is licensed under the GNU General Public License, version 3 (GPL-3
 [socket2]: https://crates.io/crates/socket2
 [regex]: https://crates.io/crates/regex
 [clap]: https://crates.io/crates/regex
+[num_enum]: https://crates.io/crates/num_enum

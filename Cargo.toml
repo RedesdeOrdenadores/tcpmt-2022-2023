@@ -9,6 +9,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.69"
 clap = { version = "4.1.8", features = ["derive", "wrap_help"] }
+num_enum = "0.5.11"
 regex = "1.7.1"
 socket2 = "0.5.1"
 thiserror = "1.0.39"

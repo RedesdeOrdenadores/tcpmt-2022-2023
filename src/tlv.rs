@@ -22,19 +22,21 @@
 
 use std::num::TryFromIntError;
 
+use num_enum::{IntoPrimitive, TryFromPrimitive, TryFromPrimitiveError};
 use thiserror::Error;
 
 #[derive(Clone, Error, Debug)]
 pub enum TlvError {
     #[error("Unknown tag")]
-    TagUnknown(u8),
+    TagUnknown(#[from] TryFromPrimitiveError<TlvType>),
     #[error("Wrong format for tag")]
     WrongFormat,
     #[error("Too much data to be encoded")]
     ExcessiveLength(#[from] TryFromIntError),
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
+#[repr(u8)]
 pub enum TlvType {
     Sum = 1,
     Sub = 2,
@@ -45,25 +47,6 @@ pub enum TlvType {
     Answer = 10,
     Invalid = 11,
     Numi64 = 16,
-}
-
-impl TryFrom<u8> for TlvType {
-    type Error = TlvError;
-
-    fn try_from(v: u8) -> Result<Self, Self::Error> {
-        match v {
-            x if x == TlvType::Sum as u8 => Ok(TlvType::Sum),
-            x if x == TlvType::Sub as u8 => Ok(TlvType::Sub),
-            x if x == TlvType::Mul as u8 => Ok(TlvType::Mul),
-            x if x == TlvType::Div as u8 => Ok(TlvType::Div),
-            x if x == TlvType::Rem as u8 => Ok(TlvType::Rem),
-            x if x == TlvType::Fact as u8 => Ok(TlvType::Fact),
-            x if x == TlvType::Answer as u8 => Ok(TlvType::Answer),
-            x if x == TlvType::Invalid as u8 => Ok(TlvType::Invalid),
-            x if x == TlvType::Numi64 as u8 => Ok(TlvType::Numi64),
-            x => Err(TlvError::TagUnknown(x)),
-        }
-    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -83,7 +66,7 @@ impl<'a> Tlv<'a> {
     }
 
     pub fn encode(self) -> Box<[u8]> {
-        [self.tag as u8, self.length]
+        [self.tag.into(), self.length]
             .iter()
             .chain(self.data)
             .copied()
