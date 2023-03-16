@@ -204,21 +204,23 @@ impl FromStr for Operation {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let regex = Regex::new(r"^\s*(\-?\d+)\s*([+\-*×x/÷%!])\s*(\-?\d+)?\s*$").unwrap();
         let elements: Box<_> = match regex.captures(s) {
-            Some(captures) => captures.iter().skip(1).collect(),
+            Some(captures) => captures
+                .iter()
+                .skip(1)
+                .map(|c| c.map(|m| m.as_str()))
+                .collect(),
             None => return Err(OperationError::Parse),
         };
 
         let (a, b) = match elements[..] {
-            [Some(match_a), Some(_), Some(match_b)] => {
-                (match_a.as_str().parse()?, match_b.as_str().parse()?)
-            }
-            [Some(match_a), Some(_), None] => (match_a.as_str().parse()?, 0i8),
+            [Some(match_a), Some(_), Some(match_b)] => (match_a.parse()?, match_b.parse()?),
+            [Some(match_a), Some(_), None] => (match_a.parse()?, 0i8),
             _ => {
                 return Err(OperationError::Parse);
             }
         };
 
-        let operation = match elements[1].map(|m| m.as_str()) {
+        let operation = match elements[1] {
             Some("+") if elements[2].is_some() => Operation::Sum((a, b).into()),
             Some("-") if elements[2].is_some() => Operation::Sub((a, b).into()),
             Some("*" | "×" | "x") if elements[2].is_some() => Operation::Mul((a, b).into()),
