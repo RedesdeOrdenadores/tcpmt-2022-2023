@@ -65,7 +65,7 @@ impl From<(i64, Option<String>)> for Answer {
     fn from((acc, message): (i64, Option<String>)) -> Self {
         Answer {
             acc: acc.into(),
-            message: message.map(|m| m.as_str().into()),
+            message: message.map(|m| m.into()),
         }
     }
 }
@@ -136,9 +136,12 @@ impl InvalidOperation {
     }
 }
 
-impl From<&str> for InvalidOperation {
-    fn from(message: &str) -> Self {
-        Self(message.into())
+impl<T> From<T> for InvalidOperation
+where
+    T: AsRef<str>,
+{
+    fn from(message: T) -> Self {
+        Self(message.as_ref().into())
     }
 }
 
