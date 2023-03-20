@@ -1,4 +1,4 @@
-# A Possible Implementation of the Remote TCP-Based Calculator Exercise for the Computer Networks Subject
+# A Possible Implementation of the Multi-Threaded Remote TCP-Based Calculator Exercise for the Computer Networks Subject
 
 [![Build Status](https://github.com/RedesdeOrdenadores/tcpmt-2022-2023/actions/workflows/build.yml/badge.svg)](https://github.com/RedesdeOrdenadores/tcpmt-2022-2023/actions/workflows/build.yml)
 
