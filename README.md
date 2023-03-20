@@ -67,5 +67,5 @@ This software is licensed under the GNU General Public License, version 3 (GPL-3
 [thiserror]: https://crates.io/crates/thiserror
 [socket2]: https://crates.io/crates/socket2
 [regex]: https://crates.io/crates/regex
-[clap]: https://crates.io/crates/regex
+[clap]: https://crates.io/crates/clap
 [num_enum]: https://crates.io/crates/num_enum
