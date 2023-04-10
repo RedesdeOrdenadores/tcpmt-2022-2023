@@ -60,19 +60,19 @@ pub struct MonomialOperationData<T1>(T1);
 
 impl<T1, T2> BinomialOperationData<T1, T2>
 where
-    T1: Into<i8>,
-    T2: Into<i8>,
+    T1: Into<i8> + Copy,
+    T2: Into<i8> + Copy,
 {
-    pub fn encode(self) -> [u8; 2] {
+    pub fn encode(&self) -> [u8; 2] {
         [self.0.into() as u8, self.1.into() as u8]
     }
 }
 
 impl<T1> MonomialOperationData<T1>
 where
-    T1: Into<i8>,
+    T1: Into<i8> + Copy,
 {
-    pub fn encode(self) -> [u8; 1] {
+    pub fn encode(&self) -> [u8; 1] {
         self.0.into().to_be_bytes()
     }
 }
