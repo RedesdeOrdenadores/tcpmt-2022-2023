@@ -23,6 +23,12 @@
 use crate::{tlv::TlvType, TCPLibError, Tlv, TlvIterator};
 use std::{fmt::Display, str};
 
+#[derive(Debug, Clone, Copy)]
+pub enum AnswerOrder {
+    MessageFirst,
+    MessageLast,
+}
+
 #[derive(Debug)]
 pub struct Answer {
     pub acc: Numberi64,
@@ -30,9 +36,20 @@ pub struct Answer {
 }
 
 impl Answer {
-    pub fn encode(self) -> Box<[u8]> {
-        let mut data = self.message.map_or(vec![], |v| v.encode().to_vec());
-        data.extend_from_slice(&self.acc.encode());
+    pub fn encode(self, order: AnswerOrder) -> Box<[u8]> {
+        let message = self.message.map_or(vec![], |v| v.encode().to_vec());
+        let data = match order {
+            AnswerOrder::MessageFirst => {
+                let mut data = message;
+                data.extend_from_slice(&self.acc.encode());
+                data
+            }
+            AnswerOrder::MessageLast => {
+                let mut data = self.acc.encode().to_vec();
+                data.extend_from_slice(&message);
+                data
+            }
+        };
 
         Tlv::new(TlvType::Answer, &data).unwrap().encode()
     }

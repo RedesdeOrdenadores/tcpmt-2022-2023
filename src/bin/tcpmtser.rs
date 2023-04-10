@@ -28,13 +28,17 @@ use std::{
 
 use clap::Parser;
 use socket2::{Domain, Socket, Type};
-use tcpmt::{Answer, Operation, TlvIterator};
+use tcpmt::{Answer, AnswerOrder, Operation, TlvIterator};
 
 #[derive(Debug, Parser)]
 struct Args {
     /// Port number
     #[arg(value_parser = clap::value_parser!(u16).range(1..))]
     port: u16,
+
+    /// Answer order
+    #[arg(short, long)]
+    message_last: bool,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -47,6 +51,11 @@ fn main() -> anyhow::Result<()> {
     socket.bind(&SocketAddr::from((Ipv6Addr::UNSPECIFIED, args.port)).into())?;
     socket.listen(128)?;
     let listener: TcpListener = socket.into();
+
+    let order = match args.message_last {
+        true => AnswerOrder::MessageLast,
+        false => AnswerOrder::MessageFirst,
+    };
 
     loop {
         let (mut stream, addr) = listener.accept()?;
@@ -73,7 +82,10 @@ fn main() -> anyhow::Result<()> {
                                 }
                             };
 
-                            if stream.write_all(&Answer::from(answer).encode()).is_err() {
+                            if stream
+                                .write_all(&Answer::from(answer).encode(order))
+                                .is_err()
+                            {
                                 // Problably the connection to the client has been lost
                                 return;
                             }

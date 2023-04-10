@@ -32,7 +32,7 @@ mod answer;
 mod operation;
 mod tlv;
 
-pub use answer::Answer;
+pub use answer::{Answer, AnswerOrder};
 pub use operation::Operation;
 pub use tlv::Tlv;
 pub use tlv::TlvIterator;
