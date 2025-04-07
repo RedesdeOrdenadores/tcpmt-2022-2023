@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /*
  *
- * Copyright (c) 2023 Universidade de Vigo
+ * Copyright (c) 2023–2025 Universidade de Vigo
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -25,7 +25,7 @@ use std::num::TryFromIntError;
 use num_enum::{IntoPrimitive, TryFromPrimitive, TryFromPrimitiveError};
 use thiserror::Error;
 
-#[derive(Clone, Error, Debug)]
+#[derive(Error, Debug)]
 pub enum TlvError {
     #[error("Unknown tag")]
     TagUnknown(#[from] TryFromPrimitiveError<TlvType>),

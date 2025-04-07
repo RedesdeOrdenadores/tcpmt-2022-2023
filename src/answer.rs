@@ -20,7 +20,7 @@
  *
  */
 
-use crate::{tlv::TlvType, TCPLibError, Tlv, TlvIterator};
+use crate::{TCPLibError, Tlv, TlvIterator, tlv::TlvType};
 use std::{fmt::Display, str};
 
 #[derive(Debug, Clone, Copy)]
@@ -90,7 +90,7 @@ impl From<(i64, Option<String>)> for Answer {
 #[derive(Debug, PartialEq)]
 pub struct Numberi64(pub i64);
 
-impl<'a> TryFrom<&Tlv<'a>> for Numberi64 {
+impl TryFrom<&Tlv<'_>> for Numberi64 {
     type Error = TCPLibError;
 
     fn try_from(tlv: &Tlv) -> Result<Self, Self::Error> {
@@ -102,7 +102,7 @@ impl<'a> TryFrom<&Tlv<'a>> for Numberi64 {
     }
 }
 
-impl<'a> TryFrom<Tlv<'a>> for Numberi64 {
+impl TryFrom<Tlv<'_>> for Numberi64 {
     type Error = TCPLibError;
 
     fn try_from(tlv: Tlv) -> Result<Self, Self::Error> {
@@ -170,7 +170,7 @@ impl Display for InvalidOperation {
 
 #[cfg(test)]
 mod tests {
-    use crate::{answer::Numberi64, Tlv};
+    use crate::{Tlv, answer::Numberi64};
 
     #[test]
     fn parse_answer_1() {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /*
  *
- * Copyright (c) 2023 Universidade de Vigo
+ * Copyright (c) 2023–2025 Universidade de Vigo
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -30,9 +30,9 @@ use std::{
 use regex::Regex;
 use thiserror::Error;
 
-use crate::{tlv::TlvType, Tlv};
+use crate::{Tlv, tlv::TlvType};
 
-#[derive(Clone, Error, Debug)]
+#[derive(Error, Debug)]
 pub enum OperationError {
     #[error("Unsupported operation {0}")]
     UnsupportedOperation(Box<str>),
@@ -135,13 +135,11 @@ impl Operation {
             Operation::Rem(BinomialOperationData(a, b)) => {
                 a.checked_rem(b).ok_or(OperationError::WrongDomain)?.into()
             }
-            Operation::Fact(MonomialOperationData(a)) if a == 0 => 1,
-            Operation::Fact(MonomialOperationData(a)) if a > 0 => {
-                (1..=a.into()).fold(Ok(1i64), |acc, e| match acc {
-                    Ok(n) => n.checked_mul(e).ok_or(OperationError::OverFlow),
-                    e => e,
-                })?
-            }
+            Operation::Fact(MonomialOperationData(0)) => 1,
+            Operation::Fact(MonomialOperationData(a)) if a > 0 => (1..=a.into())
+                .try_fold(1i64, |acc, e| {
+                    acc.checked_mul(e).ok_or(OperationError::OverFlow)
+                })?,
             _ => return Err(OperationError::WrongDomain),
         })
     }
@@ -157,7 +155,7 @@ impl Operation {
     }
 }
 
-impl<'a> TryFrom<Tlv<'a>> for Operation {
+impl TryFrom<Tlv<'_>> for Operation {
     type Error = OperationError;
 
     fn try_from(tlv: Tlv) -> Result<Self, Self::Error> {
